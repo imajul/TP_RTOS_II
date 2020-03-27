@@ -9,12 +9,12 @@
  */
  
 /*=====[Inclusion of own header]=============================================*/
-#include "../../TP_grupal/inc/app.h"
+#include "app.h"
 
 #include <ctype.h>
 
-#include "../../TP_grupal/inc/sep.h"
-#include "../../TP_grupal/inc/uartManager.h"
+#include "sep.h"
+#include "uartManager.h"
 #include "FreeRTOS.h"
 #include "task.h"
 
