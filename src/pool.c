@@ -9,7 +9,7 @@
  */
  
 /*=====[Inclusion of own header]=============================================*/
-#include "../../TP_grupal/inc/pool.h"
+#include "pool.h"
 
 #include "FreeRTOS.h"
 
