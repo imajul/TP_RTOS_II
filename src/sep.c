@@ -12,7 +12,7 @@
 //#include "FreeRTOS.h"
 //#include "task.h"
 
-#include "../../TP_grupal/inc/sep.h"
+#include "sep.h"
 
 /*=====[Inclusions of private function dependencies]=========================*/
 
