@@ -5,7 +5,7 @@
  *===========================================================================*/
 
 /*=====[Inclusions of function dependencies]=================================*/
-#include "../../TP_grupal/inc/app.h"
+#include "app.h"
 #include "FreeRTOS.h"
 #include "task.h"
 
