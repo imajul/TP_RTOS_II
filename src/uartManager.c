@@ -9,11 +9,11 @@
  */
  
 /*=====[Inclusion of own header]=============================================*/
-#include "../../TP_grupal/inc/uartManager.h"
+#include "uartManager.h"
 
 #include <string.h>
 
-#include "../../TP_grupal/inc/pool.h"
+#include "pool.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
