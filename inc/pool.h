@@ -48,8 +48,8 @@ typedef enum {
 poolError_t poolInit(pool_t* me, uint32_t blocksSize, uint32_t blocksNum);
 void poolDeinit(pool_t* me);
 
-void* poolGet(pool_t* p);
-void poolPut(pool_t* p, void* ptr);
+void* poolGet(pool_t* me);
+void poolPut(pool_t* me, void* ptr);
 
 /*=====[Prototypes (declarations) of public interrupt functions]=============*/
 

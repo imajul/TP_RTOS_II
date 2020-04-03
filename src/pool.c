@@ -52,6 +52,7 @@ poolError_t poolInit(pool_t* me, uint32_t blocksSize, uint32_t blocksNum)
 void poolDeinit(pool_t* me)
 {
 	vPortFree(me->blockMem);
+	me->blockMem = NULL;
 }
 
 void* poolGet(pool_t* me)
@@ -62,6 +63,8 @@ void* poolGet(pool_t* me)
 	{
 		ret = me->pFree;
 		me->pFree = me->pFree->next;
+
+		memset(ret, 0, me->blocksSize);
 	}
 	else
 	{
@@ -69,6 +72,8 @@ void* poolGet(pool_t* me)
 		{
 			ret = me->blockMem + me->blocksUsed * me->blocksSize;
 			me->blocksUsed++;
+
+			memset(ret, 0, me->blocksSize);
 		}
 	}
 
