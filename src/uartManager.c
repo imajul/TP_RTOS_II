@@ -9,21 +9,24 @@
  */
  
 /*=====[Inclusion of own header]=============================================*/
-#include "uartManager.h"
-
 #include <string.h>
 
-#include "pool.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
+#include "timers.h"
 
+#include "uartManager.h"
+#include "pool.h"
 
 /*=====[Inclusions of private function dependencies]=========================*/
 
 /*=====[Definition macros of private constants]==============================*/
 #define UART_MANAGER_MAX_LEN			64
 #define UART_MANAGER_MAX_QUEUE_ZISE		8
+
+#define UART_MANAGER_TIMEOUT			(50 / portTICK_RATE_MS)
+#define UART_MANAGER_BLOCK_TIME			(50 / portTICK_RATE_MS)
 
 /*=====[Private function-like macros]========================================*/
 
@@ -48,7 +51,8 @@ typedef struct {
 	uint8_t* poolBlockTx;
 	xQueueHandle rxQueue;
 	xQueueHandle txQueue;
-	xTaskHandle txTaskHandle;
+    TimerHandle_t onTxTimeout;
+    TimerHandle_t onRxTimeout;
 }uartManager_t;
 
 /*=====[Definitions of external public global variables]=====================*/
@@ -59,13 +63,15 @@ typedef struct {
 static uartManager_t manager[UART_MAXNUM] = {0};
 
 /*=====[Prototypes (declarations) of private functions]======================*/
-static void txTask(void *pvParameters);
-static void rxCallBack(void* param);
+//static void txTask(void *pvParameters);
+static void rxCallback(void* pvParameters);
+
+static void onRxTimeoutCallback(TimerHandle_t xTimer);
+static void onTxTimeoutCallback(TimerHandle_t xTimer);
 
 /*=====[Implementations of public functions]=================================*/
 uartManagerError_t uartManagerInit(uartManagerHandle_t* handle, uartManagerConfig_t config)
 {
-	BaseType_t taskErr;
 	poolError_t poolErr;
 
 	if(config.uart >= UART_MAXNUM)
@@ -86,7 +92,7 @@ uartManagerError_t uartManagerInit(uartManagerHandle_t* handle, uartManagerConfi
 	manager[*handle].msgMaxLen = config.msgMaxLen;
 
 	uartInit(manager[*handle].uart, manager[*handle].baudRate);
-	uartCallbackSet(manager[*handle].uart, UART_RECEIVE, rxCallBack, handle);
+	uartCallbackSet(manager[*handle].uart, UART_RECEIVE, rxCallback, handle);
 	uartInterrupt(manager[*handle].uart, true);
 
 	manager[*handle].state = WAITING_CH_START;
@@ -114,16 +120,27 @@ uartManagerError_t uartManagerInit(uartManagerHandle_t* handle, uartManagerConfi
 	if(manager[*handle].txQueue == NULL)
 		return UART_MANAGER_ERROR;
 
-	taskErr = xTaskCreate(
-			txTask,
-			(char*)"txTask",
-			configMINIMAL_STACK_SIZE * 2,
+	manager[*handle].onRxTimeout = xTimerCreate(
+			"onRxTimeout",
+			UART_MANAGER_TIMEOUT,
+			pdFALSE,
 			handle,
-			(tskIDLE_PRIORITY + 1UL),
-			&manager[*handle].txTaskHandle);
+			onRxTimeoutCallback);
 
-	if(taskErr != pdPASS)
+	if(manager[*handle].onRxTimeout == NULL)
 		return UART_MANAGER_ERROR;
+
+
+	manager[*handle].onTxTimeout = xTimerCreate(
+			"onTxTimeout",
+			UART_MANAGER_TIMEOUT / portTICK_RATE_MS,
+			pdFALSE,
+			handle,
+			onTxTimeoutCallback);
+
+	if(manager[*handle].onTxTimeout == NULL)
+		return UART_MANAGER_ERROR;
+
 
 	manager[*handle].enabled = true;
 
@@ -136,13 +153,14 @@ void uartManagerDeinit(uartManagerHandle_t handle)
 	vQueueDelete(manager[handle].rxQueue);
 	vQueueDelete(manager[handle].txQueue);
 
-	vTaskDelete(manager[handle].txTaskHandle);
-
 	uartCallbackClr(manager[handle].uart, UART_RECEIVE);
 	uartInterrupt(manager[handle].uart, false);
 
 	poolDeinit(&manager[handle].poolRx);
 	poolDeinit(&manager[handle].poolTx);
+
+	xTimerDelete(manager[handle].onRxTimeout, UART_MANAGER_BLOCK_TIME);
+	xTimerDelete(manager[handle].onTxTimeout, UART_MANAGER_BLOCK_TIME);
 
 	manager[handle].enabled = false;
 }
@@ -196,35 +214,37 @@ uartManagerError_t uartManagerPut(uartManagerHandle_t handle, uint8_t* msg, uint
 	strcpy( (char*)manager[handle].poolBlockTx, (const char*)msg );
 
 
-	if( xQueueSend(manager[handle].txQueue, manager[handle].poolBlockTx, timeout / portTICK_RATE_MS) == pdPASS)
+	if( xQueueSend(manager[handle].txQueue, &manager[handle].poolBlockTx, timeout / portTICK_RATE_MS) == pdPASS)
 	{
 		manager[handle].poolBlockTx = NULL;
 
 		err = UART_MANAGER_OK;
+
+		if( xTimerIsTimerActive(manager[handle].onTxTimeout) == pdFALSE )
+		{
+			xTimerStart(manager[handle].onTxTimeout, UART_MANAGER_BLOCK_TIME);
+		}
 	}
 
 	return err;
 }
 
 /*=====[Implementations of interrupt functions]==============================*/
-static void rxCallBack(void* param)
+static void rxCallback(void* pvParameters)
 {
-	uartManagerHandle_t handle = *(uartManagerHandle_t*)param;
-	bool_t uartErr;
+	uartManagerHandle_t handle = *(uartManagerHandle_t*)pvParameters;
 	uint8_t ch;
-
-
-	if( manager[handle].poolBlockRx == NULL )
-	{
-		manager[handle].poolBlockRx = (uint8_t*)poolGet(&manager[handle].poolRx);
-
-		if( manager[handle].poolBlockRx == NULL )
-			return;
-	}
-
 
 	while( uartReadByte(manager[handle].uart, &ch) )
 	{
+		if( manager[handle].poolBlockRx == NULL )
+		{
+			manager[handle].poolBlockRx = (uint8_t*)poolGet(&manager[handle].poolRx);
+
+			if( manager[handle].poolBlockRx == NULL )
+				break;
+		}
+
 		switch(manager[handle].state)
 		{
 			case WAITING_CH_START:
@@ -241,7 +261,7 @@ static void rxCallBack(void* param)
 					manager[handle].poolBlockRx[manager[handle].msgCount] = ch;
 					manager[handle].poolBlockRx[manager[handle].msgCount + 1] = '\0';
 
-					xQueueSendFromISR(manager[handle].rxQueue, manager[handle].poolBlockRx, NULL);
+					xQueueSendFromISR(manager[handle].rxQueue, &manager[handle].poolBlockRx, NULL);
 
 					manager[handle].poolBlockRx = NULL;
 
@@ -263,22 +283,33 @@ static void rxCallBack(void* param)
 			default:
 				manager[handle].state = WAITING_CH_START;
 		}
+
+	    xTimerStartFromISR(manager[handle].onRxTimeout, NULL);
 	}
 }
 
 /*=====[Implementations of private functions]================================*/
-static void txTask(void *pvParameters)
+static void onTxTimeoutCallback(TimerHandle_t xTimer)
 {
-	uartManagerHandle_t handle = *(uartManagerHandle_t*)pvParameters;
+	uartManagerHandle_t handle = *(uartManagerHandle_t*)pvTimerGetTimerID(xTimer);
 	uint8_t* ptrMsg;
 
-	while(1)
+	if( xQueueReceive(manager[handle].txQueue, &ptrMsg, 0) == pdPASS)
 	{
-		if( xQueueReceive(manager[handle].txQueue, &ptrMsg, portMAX_DELAY) == pdPASS)
-		{
-			uartWriteString(manager[handle].uart, ptrMsg);
+		uartWriteString(manager[handle].uart, ptrMsg);
 
-			poolPut(&manager[handle].poolTx, ptrMsg);
+		poolPut(&manager[handle].poolTx, ptrMsg);
+
+		if( uxQueueMessagesWaiting(manager[handle].txQueue) )
+		{
+			xTimerStart(manager[handle].onTxTimeout, UART_MANAGER_BLOCK_TIME);
 		}
 	}
+}
+
+static void onRxTimeoutCallback(TimerHandle_t xTimer)
+{
+	uartManagerHandle_t handle = *(uartManagerHandle_t*)pvTimerGetTimerID(xTimer);
+
+	manager[handle].state = WAITING_CH_START;
 }

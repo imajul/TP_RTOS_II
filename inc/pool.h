@@ -40,8 +40,8 @@ typedef struct {
 }pool_t;
 
 typedef enum {
-	POOL_OK = 0,
-	POOL_ERROR
+	POOL_ERROR = 0,
+	POOL_OK
 }poolError_t;
 
 /*=====[Prototypes (declarations) of public functions]=======================*/

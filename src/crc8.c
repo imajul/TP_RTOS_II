@@ -46,7 +46,7 @@
  *}
  */
 
-#include "crc/crc8.h"
+#include "crc8.h"
 
 static uint8_t crc8_small_table[16] = {
     0x00, 0x07, 0x0e, 0x09, 0x1c, 0x1b, 0x12, 0x15,
