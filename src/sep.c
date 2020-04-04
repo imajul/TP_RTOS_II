@@ -39,7 +39,7 @@ void sepInit(uartManagerHandle_t uartHandle, sepHandle_t *sepHandle)
 
 sepError_t sepGet(sepHandle_t *handle, sepData_t* data, uint32_t timeout)
 {
-	sepError ret = SEP_ERROR;
+	sepError_t ret = SEP_ERROR;
 	uint32_t size;
 	uint8_t *msg;
 
@@ -77,8 +77,14 @@ sepError_t sepGet(sepHandle_t *handle, sepData_t* data, uint32_t timeout)
 
 sepError_t sepPut(sepHandle_t *handle, sepData_t* data, uint32_t timeout)
 {
+	sepError_t ret = SEP_ERROR;
 
-	return SEP_OK;
+	if (uartManagerPut(handle.uartHandle, data->msg, timeout))
+	{
+		ret = SEP_OK;
+	}
+
+	return ret;
 }
 
 

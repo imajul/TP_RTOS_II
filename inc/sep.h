@@ -32,7 +32,6 @@ extern "C" {
 typedef enum {
 	TO_LOWER = 0,
 	TO_UPPER,
-	TO_UNDEFINED,
 }sepEvent_t;
 
 typedef struct {
@@ -41,14 +40,12 @@ typedef struct {
 }sepData_t;
 
 typedef struct {
-
 	uartManagerHandle_t uartHandle;
-
 }sepHandle_t;
 
 typedef enum {
-	SEP_OK = 0,
-	SEP_ERROR,
+	SEP_ERROR = 0,
+	SEP_OK,
 }sepError_t;
 
 /*=====[Prototypes (declarations) of public functions]=======================*/

@@ -7,7 +7,7 @@
  * Version: 0.0.0
  * Creation Date: YYYY/MM/DD
  */
- 
+
 /*=====[Inclusion of own header]=============================================*/
 #include "app.h"
 
@@ -72,40 +72,30 @@ static void rxTask(void *pvParameters)
 	uint32_t size;
 	sepData_t data;
 
-
 	while(1)
 	{
-		if( sepGet(&handle, NULL, &size, portMAX_DELAY) )
+		sepGet(&handle, &data, portMAX_DELAY);
+
+		switch(data.event)
 		{
-			//TODO: asignar memoria para size, algo asi
-//			data.msg = malloc(size)
-
-			sepGet(&handle, &data, NULL, portMAX_DELAY);
-
-			switch(data.event)
+		case TO_LOWER:
+			while( *data.msg != '\0' )
 			{
-				case TO_LOWER:
-					while( *data.msg != '\0' )
-					{
-						*data.msg = tolower( *data.msg );
-						data.msg++;
-					}
-					break;
-				case TO_UPPER:
-					while( *data.msg != '\0' )
-					{
-						*data.msg = toupper( *data.msg );
-						data.msg++;
-					}
-					break;
-				case UNDEFINED:
-
+				*data.msg = tolower( *data.msg );
+				data.msg++;
 			}
+			break;
+		case TO_UPPER:
+			while( *data.msg != '\0' )
+			{
+				*data.msg = toupper( *data.msg );
+				data.msg++;
+			}
+			break;
 
-			sepPut(&handle, &data, 0);
-
-			//TODO: liberar la memoria adignada
-//			free(data.msg)
 		}
+
+		sepPut(&handle, &data, 0);
+
 	}
 }
