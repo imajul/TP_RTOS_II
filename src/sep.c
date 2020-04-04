@@ -31,32 +31,45 @@
 /*=====[Prototypes (declarations) of private functions]======================*/
 
 /*=====[Implementations of public functions]=================================*/
-sepHandle_t sepInit(uartManagerConfig_t config)
+void sepInit(uartManagerHandle_t uartHandle, sepHandle_t *sepHandle)
 {
-	sepHandle_t handle;
-
-
-	//TODO: crear dos tareas rx y tx, y dos colas rx y tx
-
-	return handle;
-}
-
-
-void sepDeinit(sepHandle_t handle)
-{
+	sepHandle->uartHandle = uartHandle;
 
 }
 
-
-sepError_t sepGet(sepHandle_t handle, sepData_t* data, uint32_t* size, uint32_t timeout)
+sepError_t sepGet(sepHandle_t *handle, sepData_t* data, uint32_t timeout)
 {
+	sepError err = SEP_ERROR;
+	uint32_t size;
+	uint8_t *msg;
 
+	if (uartManagerGet( handle.uartHandle, NULL, &size, timeout))
+	{
+		msg = (uint8_t *)pvPortMalloc(size);
 
+		uartManagerGet( handle.uartHandle, msg, &size, timeout);
+
+		switch (msg[0])
+		{
+			case 'm':
+			data->event = TO_LOWER;
+			break;
+
+			case 'M':
+			data->event = TO_UPPER;
+			break;
+
+			default:
+			data->event = TO_UNDEFINED;
+			break;
+		}
+
+	}
 	return SEP_OK;
 }
 
 
-sepError_t sepPut(sepHandle_t handle, sepData_t* data, uint32_t timeout)
+sepError_t sepPut(sepHandle_t *handle, sepData_t* data, uint32_t timeout)
 {
 
 	return SEP_OK;

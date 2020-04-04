@@ -31,7 +31,8 @@ extern "C" {
 /*=====[Definitions of public data types]====================================*/
 typedef enum {
 	TO_LOWER = 0,
-	TO_UPPER
+	TO_UPPER,
+	TO_UNDEFINED,
 }sepEvent_t;
 
 typedef struct {
@@ -39,7 +40,11 @@ typedef struct {
 	uint8_t* msg;
 }sepData_t;
 
-typedef void* sepHandle_t;
+typedef struct {
+
+	uartManagerHandle_t uartHandle;
+
+}sepHandle_t;
 
 typedef enum {
 	SEP_OK = 0,

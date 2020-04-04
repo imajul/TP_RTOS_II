@@ -52,13 +52,13 @@ void appInit(void)
 
 	uartManagerInit(&uartHandle, uartConfig);
 
-	sepHandle = sepInit(uartConfig);
+	sepInit(uartHandle, &sepHandle);
 
 	xTaskCreate(
 			rxTask,
 			(char*)"rxTask",
 			configMINIMAL_STACK_SIZE * 2,
-			sepHandle,
+			&sepHandle,
 			(tskIDLE_PRIORITY + 1UL),
 			NULL);
 }
@@ -75,12 +75,12 @@ static void rxTask(void *pvParameters)
 
 	while(1)
 	{
-		if( sepGet(handle, NULL, &size, portMAX_DELAY) )
+		if( sepGet(&handle, NULL, &size, portMAX_DELAY) )
 		{
 			//TODO: asignar memoria para size, algo asi
 //			data.msg = malloc(size)
 
-			sepGet(handle, &data, NULL, portMAX_DELAY);
+			sepGet(&handle, &data, NULL, portMAX_DELAY);
 
 			switch(data.event)
 			{
@@ -98,9 +98,11 @@ static void rxTask(void *pvParameters)
 						data.msg++;
 					}
 					break;
+				case UNDEFINED:
+
 			}
 
-			sepPut(handle, &data, 0);
+			sepPut(&handle, &data, 0);
 
 			//TODO: liberar la memoria adignada
 //			free(data.msg)
