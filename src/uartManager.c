@@ -10,6 +10,7 @@
  
 /*=====[Inclusion of own header]=============================================*/
 #include <string.h>
+#include <stdlib.h>
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -18,6 +19,7 @@
 
 #include "uartManager.h"
 #include "pool.h"
+#include "crc8.h"
 
 /*=====[Inclusions of private function dependencies]=========================*/
 
@@ -68,6 +70,8 @@ static void rxCallback(void* pvParameters);
 
 static void onRxTimeoutCallback(TimerHandle_t xTimer);
 static void onTxTimeoutCallback(TimerHandle_t xTimer);
+
+static bool checkCrc8(uint8_t* data, uint8_t len);
 
 /*=====[Implementations of public functions]=================================*/
 uartManagerError_t uartManagerInit(uartManagerHandle_t* handle, uartManagerConfig_t config)
@@ -175,7 +179,7 @@ uartManagerError_t uartManagerGet(uartManagerHandle_t handle, uint8_t* msg, uint
 	{
 		if( xQueuePeek(manager[handle].rxQueue, &ptrMsg, timeout / portTICK_RATE_MS) == pdPASS)
 		{
-			*size = (uint32_t)strlen( (const char*)ptrMsg );
+			*size = (uint32_t)( strlen( (const char*)ptrMsg ) - 4 );
 
 			err = UART_MANAGER_OK;
 		}
@@ -184,11 +188,11 @@ uartManagerError_t uartManagerGet(uartManagerHandle_t handle, uint8_t* msg, uint
 	{
 		if( xQueueReceive(manager[handle].rxQueue, &ptrMsg, timeout / portTICK_RATE_MS) == pdPASS)
 		{
-			strcpy( (char*)msg, (const char*)ptrMsg );
+			*size = (uint32_t)( strlen( (const char*)ptrMsg ) - 4 );
+
+			strncpy( (char*)msg, (const char*)(ptrMsg + 1), strlen( (const char*)ptrMsg ) - 4);
 
 			poolPut(&manager[handle].poolRx, ptrMsg);
-
-			*size = (uint32_t)strlen( (const char*)msg );
 
 			err = UART_MANAGER_OK;
 		}
@@ -201,7 +205,7 @@ uartManagerError_t uartManagerGet(uartManagerHandle_t handle, uint8_t* msg, uint
 uartManagerError_t uartManagerPut(uartManagerHandle_t handle, uint8_t* msg, uint32_t timeout)
 {
 	uartManagerError_t err = UART_MANAGER_ERROR;
-
+	uint8_t crcCalculated = 0;
 
 	if( manager[handle].poolBlockTx == NULL )
 	{
@@ -211,8 +215,9 @@ uartManagerError_t uartManagerPut(uartManagerHandle_t handle, uint8_t* msg, uint
 			return err;
 	}
 
-	strcpy( (char*)manager[handle].poolBlockTx, (const char*)msg );
+	crcCalculated = crc8Calculate(0, msg, strlen( (const char*)msg ));
 
+	sprintf((char*)manager[handle].poolBlockTx, "(%s%02X)", msg, crcCalculated);
 
 	if( xQueueSend(manager[handle].txQueue, &manager[handle].poolBlockTx, timeout / portTICK_RATE_MS) == pdPASS)
 	{
@@ -259,11 +264,16 @@ static void rxCallback(void* pvParameters)
 				if( ch == manager[handle].chEnd )
 				{
 					manager[handle].poolBlockRx[manager[handle].msgCount] = ch;
-					manager[handle].poolBlockRx[manager[handle].msgCount + 1] = '\0';
+					manager[handle].msgCount++;
 
-					xQueueSendFromISR(manager[handle].rxQueue, &manager[handle].poolBlockRx, NULL);
+					manager[handle].poolBlockRx[manager[handle].msgCount] = '\0';
 
-					manager[handle].poolBlockRx = NULL;
+					if( checkCrc8(manager[handle].poolBlockRx, manager[handle].msgCount) )
+					{
+						xQueueSendFromISR(manager[handle].rxQueue, &manager[handle].poolBlockRx, NULL);
+
+						manager[handle].poolBlockRx = NULL;
+					}
 
 					manager[handle].state = WAITING_CH_START;
 				}
@@ -312,4 +322,22 @@ static void onRxTimeoutCallback(TimerHandle_t xTimer)
 	uartManagerHandle_t handle = *(uartManagerHandle_t*)pvTimerGetTimerID(xTimer);
 
 	manager[handle].state = WAITING_CH_START;
+}
+
+static bool checkCrc8(uint8_t* data, uint8_t len)
+{
+	bool retVal = false;
+	char crcAux[3] = {0};
+	uint8_t crcReceived = 0;
+	uint8_t crcCalculated = 0;
+
+	strncpy(crcAux, data + len - 3, 2);
+
+	crcReceived = (uint8_t)strtoul(crcAux, NULL, 16);
+	crcCalculated = crc8Calculate(0, data + 1, len - 4);
+
+	if(crcReceived == crcCalculated)
+		retVal = true;
+
+	return retVal;
 }

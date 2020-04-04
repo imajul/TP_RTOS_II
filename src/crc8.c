@@ -1,74 +1,53 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+/*=====[Module Name]===========================================================
+ * Copyright YYYY Author Compelte Name <author@mail.com>
+ * All rights reserved.
+ * License: license text or at least name and link 
+         (example: BSD-3-Clause <https://opensource.org/licenses/BSD-3-Clause>)
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * Version: 0.0.0
+ * Creation Date: YYYY/MM/DD
  */
-
-/*
- * Table computation:
- *
- * void
- * gen_small_table(uint8_t poly)
- * {
- *      int i;
- *	int j;
- *	uint8_t curr;
- *
- *	for (i = 0; i < 16; i++) {
- *		curr = i;
- *
- *		for (j = 0; j < 8; j++)  {
- *			if ((curr & 0x80) != 0) {
- *				curr = (curr << 1) ^ poly;
- *			} else {
- *				curr <<= 1;
- *			}
- *		}
- *
- *		small_table[i] = curr;
- *
- *		printf("0x%x, ", small_table[i]);
- *	}
- *	printf("\n");
- *}
- */
-
+ 
+/*=====[Inclusion of own header]=============================================*/
 #include "crc8.h"
 
-static uint8_t crc8_small_table[16] = {
+/*=====[Inclusions of private function dependencies]=========================*/
+
+/*=====[Definition macros of private constants]==============================*/
+
+/*=====[Private function-like macros]========================================*/
+
+/*=====[Definitions of private data types]===================================*/
+static const uint8_t crc8SmallTable[16] = {
     0x00, 0x07, 0x0e, 0x09, 0x1c, 0x1b, 0x12, 0x15,
     0x38, 0x3f, 0x36, 0x31, 0x24, 0x23, 0x2a, 0x2d
 };
 
-uint8_t
-crc8_init(void)
-{
-    return 0xff;
-}
+/*=====[Definitions of external public global variables]=====================*/
 
-uint8_t
-crc8_calc(uint8_t val, void *buf, int cnt)
-{
-	int i;
-	uint8_t *p = buf;
+/*=====[Definitions of public global variables]==============================*/
 
-	for (i = 0; i < cnt; i++) {
+/*=====[Definitions of private global variables]=============================*/
+
+/*=====[Prototypes (declarations) of private functions]======================*/
+
+/*=====[Implementations of public functions]=================================*/
+uint8_t crc8Calculate(uint8_t val, void* data, uint8_t len)
+{
+	uint32_t i;
+	uint8_t* p = data;
+
+	for(i=0; i<len; i++)
+	{
 		val ^= p[i];
-		val = (val << 4) ^ crc8_small_table[val >> 4];
-		val = (val << 4) ^ crc8_small_table[val >> 4];
+		val = (val << 4) ^ crc8SmallTable[val >> 4];
+		val = (val << 4) ^ crc8SmallTable[val >> 4];
 	}
+
 	return val;
 }
+
+/*=====[Implementations of interrupt functions]==============================*/
+
+/*=====[Implementations of private functions]================================*/
+

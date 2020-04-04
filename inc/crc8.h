@@ -1,40 +1,44 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+/*=====[Module Name]===========================================================
+ * Copyright YYYY Author Compelte Name <author@mail.com>
+ * All rights reserved.
+ * License: license text or at least name and link 
+         (example: BSD-3-Clause <https://opensource.org/licenses/BSD-3-Clause>)
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * Version: 0.0.0
+ * Creation Date: YYYY/MM/DD
  */
 
-/*
- * CRC8-CCITT, with normal polynomial; 0x07.
- */
+/*=====[Avoid multiple inclusion - begin]====================================*/
 
-#ifndef _UTIL_CRC8_H_
-#define _UTIL_CRC8_H_
+#ifndef _CRC8_H_
+#define _CRC8_H_
 
-#include <inttypes.h>
+/*=====[Inclusions of public function dependencies]==========================*/
+#include <stdint.h>
+
+/*=====[C++ - begin]=========================================================*/
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-uint8_t crc8_init(void);
-uint8_t crc8_calc(uint8_t val, void *buf, int cnt);
+/*=====[Definition macros of public constants]===============================*/
+
+/*=====[Public function-like macros]=========================================*/
+
+/*=====[Definitions of public data types]====================================*/
+
+/*=====[Prototypes (declarations) of public functions]=======================*/
+uint8_t crc8Calculate(uint8_t val, void* data, uint8_t len);
+
+/*=====[Prototypes (declarations) of public interrupt functions]=============*/
+
+/*=====[C++ - end]===========================================================*/
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif
+/*=====[Avoid multiple inclusion - end]======================================*/
+
+#endif /* _CRC8_H_ */
