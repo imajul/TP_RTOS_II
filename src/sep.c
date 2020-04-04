@@ -7,7 +7,7 @@
  * Version: 0.0.0
  * Creation Date: YYYY/MM/DD
  */
- 
+
 /*=====[Inclusion of own header]=============================================*/
 //#include "FreeRTOS.h"
 //#include "task.h"
@@ -39,33 +39,39 @@ void sepInit(uartManagerHandle_t uartHandle, sepHandle_t *sepHandle)
 
 sepError_t sepGet(sepHandle_t *handle, sepData_t* data, uint32_t timeout)
 {
-	sepError err = SEP_ERROR;
+	sepError ret = SEP_ERROR;
 	uint32_t size;
 	uint8_t *msg;
 
 	if (uartManagerGet( handle.uartHandle, NULL, &size, timeout))
 	{
+		ret = SEP_OK;
 		msg = (uint8_t *)pvPortMalloc(size);
 
 		uartManagerGet( handle.uartHandle, msg, &size, timeout);
 
-		switch (msg[0])
+		if (msg[0] == 'm' || msg[0] == 'M' )
 		{
+			switch (msg[0])
+			{
 			case 'm':
-			data->event = TO_LOWER;
-			break;
+				data->event = TO_LOWER;
+				break;
 
 			case 'M':
-			data->event = TO_UPPER;
-			break;
+				data->event = TO_UPPER;
+				break;
+			}
 
-			default:
-			data->event = TO_UNDEFINED;
-			break;
+			data->msg = (uint8_t*)pvPortMalloc(size-1);
+			strcpy(data->msg, msg + 1);
 		}
 
+		vPortFree(msg);
+
 	}
-	return SEP_OK;
+
+	return ret;
 }
 
 
