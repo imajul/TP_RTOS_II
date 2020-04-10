@@ -9,15 +9,15 @@
  */
 
 /*=====[Inclusion of own header]=============================================*/
-#include "app.h"
-
+#include <string.h>
 #include <ctype.h>
 
-#include "sep.h"
-#include "uartManager.h"
 #include "FreeRTOS.h"
 #include "task.h"
 
+#include "app.h"
+#include "sep.h"
+#include "uartManager.h"
 
 /*=====[Inclusions of private function dependencies]=========================*/
 
@@ -40,9 +40,9 @@ static void rxTask(void *pvParameters);
 void appInit(void)
 {
 	uartManagerConfig_t uartConfig;
-	uartManagerHandle_t uartHandle;
+	static uartManagerHandle_t uartHandle;
 
-	sepHandle_t sepHandle;
+	static sepHandle_t sepHandle;
 
 	uartConfig.baudRate = 115200;
 	uartConfig.uart = UART_USB;
@@ -52,13 +52,13 @@ void appInit(void)
 
 	uartManagerInit(&uartHandle, uartConfig);
 
-	sepInit(uartHandle, &sepHandle);
+	sepInit(&sepHandle, uartHandle);
 
 	xTaskCreate(
 			rxTask,
 			(char*)"rxTask",
 			configMINIMAL_STACK_SIZE * 2,
-			&sepHandle,
+			(void*)&sepHandle,
 			(tskIDLE_PRIORITY + 1UL),
 			NULL);
 }
@@ -68,34 +68,56 @@ void appInit(void)
 /*=====[Implementations of private functions]================================*/
 static void rxTask(void *pvParameters)
 {
-	sepHandle_t handle = (sepHandle_t)pvParameters;
+	sepHandle_t handle = *(sepHandle_t*)pvParameters;
 	uint32_t size;
 	sepData_t data;
 
+	uint8_t* ptr;
+
 	while(1)
 	{
-		sepGet(&handle, &data, portMAX_DELAY);
-
-		switch(data.event)
+		if( sepGet(&handle, &data, UINT32_MAX) )
 		{
-		case TO_LOWER:
-			while( *data.msg != '\0' )
-			{
-				*data.msg = tolower( *data.msg );
-				data.msg++;
-			}
-			break;
-		case TO_UPPER:
-			while( *data.msg != '\0' )
-			{
-				*data.msg = toupper( *data.msg );
-				data.msg++;
-			}
-			break;
+			ptr = data.msg;
 
+			switch(data.event)
+			{
+				case TO_LOWER:
+					while( *ptr != '\0' )
+					{
+						if( (*ptr >= 'A') && (*ptr <= 'Z') )
+						{
+							*ptr = tolower( *ptr );
+							ptr++;
+						}
+						else
+						{
+							strcpy(data.msg, "ERROR\0");
+							data.event = TO_ERROR;
+							break;
+						}
+					}
+					break;
+				case TO_UPPER:
+					while( *ptr != '\0' )
+					{
+						if( (*ptr >= 'a') && (*ptr <= 'z') )
+						{
+							*ptr = toupper( *ptr );
+							ptr++;
+						}
+						else
+						{
+							strcpy(data.msg, "ERROR\0");
+							data.event = TO_ERROR;
+							break;
+						}
+					}
+
+					break;
+			}
+
+			sepPut(&handle, &data, 0);
 		}
-
-		sepPut(&handle, &data, 0);
-
 	}
 }

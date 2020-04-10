@@ -32,6 +32,7 @@ extern "C" {
 typedef enum {
 	TO_LOWER = 0,
 	TO_UPPER,
+	TO_ERROR
 }sepEvent_t;
 
 typedef struct {
@@ -49,11 +50,10 @@ typedef enum {
 }sepError_t;
 
 /*=====[Prototypes (declarations) of public functions]=======================*/
-sepHandle_t sepInit(uartManagerConfig_t config);
-void sepDeinit(sepHandle_t handle);
+void sepInit(sepHandle_t* me, uartManagerHandle_t uartHandle);
 
-sepError_t sepGet(sepHandle_t handle, sepData_t* data, uint32_t* size, uint32_t timeout);
-sepError_t sepPut(sepHandle_t handle, sepData_t* data, uint32_t timeout);
+sepError_t sepGet(sepHandle_t* me, sepData_t* data, uint32_t timeout);
+sepError_t sepPut(sepHandle_t* me, sepData_t* data, uint32_t timeout);
 
 /*=====[Prototypes (declarations) of public interrupt functions]=============*/
 

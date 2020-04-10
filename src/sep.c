@@ -9,8 +9,10 @@
  */
 
 /*=====[Inclusion of own header]=============================================*/
-//#include "FreeRTOS.h"
-//#include "task.h"
+#include <string.h>
+
+#include "FreeRTOS.h"
+#include "task.h"
 
 #include "sep.h"
 
@@ -31,58 +33,79 @@
 /*=====[Prototypes (declarations) of private functions]======================*/
 
 /*=====[Implementations of public functions]=================================*/
-void sepInit(uartManagerHandle_t uartHandle, sepHandle_t *sepHandle)
+void sepInit(sepHandle_t* me, uartManagerHandle_t uartHandle)
 {
-	sepHandle->uartHandle = uartHandle;
-
+	me->uartHandle = uartHandle;
 }
 
-sepError_t sepGet(sepHandle_t *handle, sepData_t* data, uint32_t timeout)
+sepError_t sepGet(sepHandle_t* me, sepData_t* data, uint32_t timeout)
 {
 	sepError_t ret = SEP_ERROR;
 	uint32_t size;
-	uint8_t *msg;
+	uint8_t* msg;
 
-	if (uartManagerGet( handle.uartHandle, NULL, &size, timeout))
+	if (uartManagerGet( me->uartHandle, NULL, &size, timeout))
 	{
-		ret = SEP_OK;
 		msg = (uint8_t *)pvPortMalloc(size);
 
-		uartManagerGet( handle.uartHandle, msg, &size, timeout);
+		uartManagerGet( me->uartHandle, msg, &size, timeout);
 
 		if (msg[0] == 'm' || msg[0] == 'M' )
 		{
 			switch (msg[0])
 			{
-			case 'm':
-				data->event = TO_LOWER;
-				break;
+				case 'm':
+					data->event = TO_LOWER;
+					break;
 
-			case 'M':
-				data->event = TO_UPPER;
-				break;
+				case 'M':
+					data->event = TO_UPPER;
+					break;
 			}
 
-			data->msg = (uint8_t*)pvPortMalloc(size-1);
+			data->msg = (uint8_t*)pvPortMalloc(size);
 			strcpy(data->msg, msg + 1);
+			data->msg[size] = '\0';
+
+			ret = SEP_OK;
 		}
 
 		vPortFree(msg);
-
 	}
 
 	return ret;
 }
 
 
-sepError_t sepPut(sepHandle_t *handle, sepData_t* data, uint32_t timeout)
+sepError_t sepPut(sepHandle_t* me, sepData_t* data, uint32_t timeout)
 {
 	sepError_t ret = SEP_ERROR;
+	uint8_t* msg;
 
-	if (uartManagerPut(handle.uartHandle, data->msg, timeout))
+	msg = (uint8_t *)pvPortMalloc(strlen(data->msg) + 1);
+
+	switch(data->event)
+	{
+		case TO_UPPER:
+			*msg = 'M';
+			strcpy(msg + 1, data->msg);
+			break;
+		case TO_LOWER:
+			*msg = 'm';
+			strcpy(msg + 1, data->msg);
+			break;
+		case TO_ERROR:
+			strcpy(msg, data->msg);
+			break;
+	}
+
+	if(uartManagerPut(me->uartHandle, msg, timeout))
 	{
 		ret = SEP_OK;
 	}
+
+	vPortFree(data->msg);
+	vPortFree(msg);
 
 	return ret;
 }

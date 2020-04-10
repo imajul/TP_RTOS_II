@@ -14,7 +14,6 @@
 #define _APP_H_
 
 /*=====[Inclusions of public function dependencies]==========================*/
-#include "sapi.h"
 
 /*=====[C++ - begin]=========================================================*/
 

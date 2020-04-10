@@ -18,8 +18,8 @@
 #include "timers.h"
 
 #include "uartManager.h"
-#include "pool.h"
 #include "crc8.h"
+#include "pool.h"
 
 /*=====[Inclusions of private function dependencies]=========================*/
 
@@ -190,7 +190,9 @@ uartManagerError_t uartManagerGet(uartManagerHandle_t handle, uint8_t* msg, uint
 		{
 			*size = (uint32_t)( strlen( (const char*)ptrMsg ) - 4 );
 
-			strncpy( (char*)msg, (const char*)(ptrMsg + 1), strlen( (const char*)ptrMsg ) - 4);
+			strncpy( (char*)msg, (const char*)(ptrMsg + 1), *size);
+
+			msg[*size] = '\0';
 
 			poolPut(&manager[handle].poolRx, ptrMsg);
 
