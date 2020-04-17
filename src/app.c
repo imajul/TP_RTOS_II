@@ -18,6 +18,7 @@
 #include "app.h"
 #include "sep.h"
 #include "uartManager.h"
+#include "AO.h"
 
 /*=====[Inclusions of private function dependencies]=========================*/
 
@@ -34,7 +35,7 @@
 /*=====[Definitions of private global variables]=============================*/
 
 /*=====[Prototypes (declarations) of private functions]======================*/
-static void rxTask(void *pvParameters);
+static void rxTaskAO(void *pvParameters);
 
 /*=====[Implementations of public functions]=================================*/
 void appInit(void)
@@ -55,39 +56,61 @@ void appInit(void)
 	sepInit(&sepHandle, uartHandle);
 
 	xTaskCreate(
-			rxTask,
-			(char*)"rxTask",
-			configMINIMAL_STACK_SIZE * 2,
-			(void*)&sepHandle,
-			(tskIDLE_PRIORITY + 1UL),
-			NULL);
+		rxTaskAO,
+		(char *)"rxTaskAO",
+		configMINIMAL_STACK_SIZE * 2,
+		(void *)&sepHandle,
+		(tskIDLE_PRIORITY + 1UL),
+		NULL);
 }
 
 /*=====[Implementations of interrupt functions]==============================*/
 
 /*=====[Implementations of private functions]================================*/
-static void rxTask(void *pvParameters)
+static void rxTaskAO(void *pvParameters)
 {
-	sepHandle_t handle = *(sepHandle_t*)pvParameters;
+	sepHandle_t handle = *(sepHandle_t *)pvParameters;
 	uint32_t size;
 	sepData_t data;
+	uint8_t *ptr;
 
-	uint8_t* ptr;
+	activeObject_t toLowerAO, toUpperAO;
+	toLowerAO.isAlive = false;
+	toUpperAO.isAlive = false;
 
-	while(1)
+	activeObjectResponse_t packetResponse;
+	activeObjectResponse_t auxResponse;
+
+	packetResponse.colaCapa3 = xQueueCreate(10, sizeof(activeObjectResponse_t));
+
+	if (packetResponse != NULL)
 	{
-		if( sepGet(&handle, &data, UINT32_MAX) )
+		while (1)
 		{
-			ptr = data.msg;
-
-			switch(data.event)
+			if (sepGet(&handle, &data, UINT32_MAX))
 			{
+				packetResponse.data.msg = data.msg;
+				ptr = data.msg;
+
+				switch (data.event)
+				{
 				case TO_LOWER:
-					while( *ptr != '\0' )
+
+					// creo el objeto activo si no esxiste
+					if (toLowerAO == false)
 					{
-						if( (*ptr >= 'A') && (*ptr <= 'Z') )
+						activeObjectCreate(&toLowerAO, toLowercallback, activeObjectTask);
+					}
+
+					// encolar
+					activeObjectEnqueue(&toLowerAO, &packetResponse);
+					/*
+					while (*ptr != '\0')
+					{
+
+						if ((*ptr >= 'A') && (*ptr <= 'Z'))
 						{
-							*ptr = tolower( *ptr );
+							*ptr = tolower(*ptr);
 							ptr++;
 						}
 						else
@@ -97,13 +120,24 @@ static void rxTask(void *pvParameters)
 							break;
 						}
 					}
+					*/
 					break;
 				case TO_UPPER:
-					while( *ptr != '\0' )
+
+					// creo el objeto activo si no esxiste
+					if (toUpperAO == false)
 					{
-						if( (*ptr >= 'a') && (*ptr <= 'z') )
+						activeObjectCreate(&toUpperAO, toUpperCallback, activeObjectTask);
+					}
+
+					// encolar
+					activeObjectEnqueue(&toUpperAO, &packetResponse);
+					/*
+					while (*ptr != '\0')
+					{
+						if ((*ptr >= 'a') && (*ptr <= 'z'))
 						{
-							*ptr = toupper( *ptr );
+							*ptr = toupper(*ptr);
 							ptr++;
 						}
 						else
@@ -113,11 +147,17 @@ static void rxTask(void *pvParameters)
 							break;
 						}
 					}
+					*/
 
 					break;
-			}
+				}
 
-			sepPut(&handle, &data, 0);
+				if( xQueueReceive(packetResponse.colaCapa3, &auxResponse, 0))
+				{
+					sepPut(&handle, &(packetResponse.data), 0);
+				}
+				
+			}
 		}
 	}
 }
