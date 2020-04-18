@@ -81,7 +81,7 @@ static void rxTaskAO(void *pvParameters)
 	activeObjectResponse_t packetResponse;
 	activeObjectResponse_t auxResponse;
 
-	packetResponse.colaCapa3 = xQueueCreate(10, sizeof(activeObjectResponse_t));
+	packetResponse.cola = xQueueCreate(10, sizeof(activeObjectResponse_t));
 
 	if (packetResponse != NULL)
 	{
@@ -97,62 +97,30 @@ static void rxTaskAO(void *pvParameters)
 				case TO_LOWER:
 
 					// creo el objeto activo si no esxiste
-					if (toLowerAO == false)
+					if (toLowerAO.isAlive == false)
 					{
 						activeObjectCreate(&toLowerAO, toLowercallback, activeObjectTask);
 					}
 
 					// encolar
 					activeObjectEnqueue(&toLowerAO, &packetResponse);
-					/*
-					while (*ptr != '\0')
-					{
-
-						if ((*ptr >= 'A') && (*ptr <= 'Z'))
-						{
-							*ptr = tolower(*ptr);
-							ptr++;
-						}
-						else
-						{
-							strcpy(data.msg, "ERROR\0");
-							data.event = TO_ERROR;
-							break;
-						}
-					}
-					*/
+					
 					break;
 				case TO_UPPER:
 
 					// creo el objeto activo si no esxiste
-					if (toUpperAO == false)
+					if (toUpperAO.isAlive == false)
 					{
 						activeObjectCreate(&toUpperAO, toUpperCallback, activeObjectTask);
 					}
 
 					// encolar
 					activeObjectEnqueue(&toUpperAO, &packetResponse);
-					/*
-					while (*ptr != '\0')
-					{
-						if ((*ptr >= 'a') && (*ptr <= 'z'))
-						{
-							*ptr = toupper(*ptr);
-							ptr++;
-						}
-						else
-						{
-							strcpy(data.msg, "ERROR\0");
-							data.event = TO_ERROR;
-							break;
-						}
-					}
-					*/
 
 					break;
 				}
 
-				if( xQueueReceive(packetResponse.colaCapa3, &auxResponse, 0))
+				if( xQueueReceive(packetResponse.cola, &auxResponse, 0))
 				{
 					sepPut(&handle, &(packetResponse.data), 0);
 				}
