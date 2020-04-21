@@ -42,7 +42,6 @@ void activeObjectTask(void *pvParameters)
     activeObjectResponse_t value;
     xQueueReceive(ao.activeObjectQueue, &value, portMAX_DELAY);
     ao.callbackFunc(&value); // llamo al callback del AO
-    
 }
 
 void activeObjectEnqueue(activeObject_t *ao, activeObjectResponse_t *value)
@@ -71,7 +70,7 @@ void toLowercallback(activeObjectResponse_t* aoResponse)
     xQueueSend( aoResponse.cola, aoResponse, 0);
 }
 
-void toLowercallback(activeObjectResponse_t* aoResponse)
+void toUppercallback(activeObjectResponse_t* aoResponse)
 {
     uint8_t *ptr = aoResponse->data.msg;
 
@@ -89,5 +88,5 @@ void toLowercallback(activeObjectResponse_t* aoResponse)
             break;
         }
     }
-    xQueueSend( aoResponse.cola, aoResponse, 0);
+    xQueueSend( aoResponse->cola, aoResponse, 0);
 }
