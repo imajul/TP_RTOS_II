@@ -1,35 +1,27 @@
 
 #include "FreeRTOS.h"
 #include "task.h"
-#include "semaphore.h"
 #include "sapi.h"
 #include "queue.h"
 #include "sep.h"
+#include "app.h"
 
-typedef struct
-{
-    sepData_t data;
-    QueueHandle_t cola;
 
-} activeObjectResponse_t;
-
-typedef void (*callBackActObj_t)(activeObjectResponse_t *);  // prototipo de la llamada al callback
+typedef void (*callBackActObj_t)(AOresponse_t *);  // prototipo de la llamada al callback
 
 typedef struct
 {
     TaskFunction_t taskName;
     QueueHandle_t activeObjectQueue;
     callBackActObj_t callbackFunc;
-    bool_t isAlive;
+    //bool_t isAlive = false;
 
 } activeObject_t;
 
-bool_t activeObjectCreate(activeObject_t *ao, callBackActObj_t callback, TaskFunction_t taskForAO);
+bool_t activeObjectCreate(activeObject_t *ao, callBackActObj_t callback);
 
 void activeObjectTask(void *pvParameters);
 
-void activeObjectEnqueue(activeObject_t *ao, activeObjectResponse_t *value);
+void activeObjectEnqueue(activeObject_t *ao, AOresponse_t *value);
 
-void toLowercallback(activeObjectResponse_t *aoResponse);
 
-void toUppercallback(activeObjectResponse_t *aoResponse);

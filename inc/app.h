@@ -27,6 +27,13 @@ extern "C" {
 
 /*=====[Definitions of public data types]====================================*/
 
+typedef struct
+{
+    sepData_t data;
+    QueueHandle_t cola;
+
+} AOresponse_t;
+
 /*=====[Prototypes (declarations) of public functions]=======================*/
 void appInit(void);
 

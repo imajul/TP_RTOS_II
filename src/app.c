@@ -11,10 +11,8 @@
 /*=====[Inclusion of own header]=============================================*/
 #include <string.h>
 #include <ctype.h>
-
 #include "FreeRTOS.h"
 #include "task.h"
-
 #include "app.h"
 #include "sep.h"
 #include "uartManager.h"
@@ -36,6 +34,9 @@
 
 /*=====[Prototypes (declarations) of private functions]======================*/
 static void rxTaskAO(void *pvParameters);
+
+void toLowercallback(AOresponse_t *aoResponse);
+void toUppercallback(AOresponse_t *aoResponse);
 
 /*=====[Implementations of public functions]=================================*/
 void appInit(void)
@@ -75,13 +76,13 @@ static void rxTaskAO(void *pvParameters)
 	uint8_t *ptr;
 
 	activeObject_t toLowerAO, toUpperAO;
-	toLowerAO.isAlive = false;
-	toUpperAO.isAlive = false;
+	AOresponse_t packetResponse;
+	AOresponse_t auxResponse;
 
-	activeObjectResponse_t packetResponse;
-	activeObjectResponse_t auxResponse;
+	activeObjectCreate(&toLowerAO, toLowercallback); // instancia de los AO
+	activeObjectCreate(&toUpperAO, toUppercallback);
 
-	packetResponse.cola = xQueueCreate(10, sizeof(activeObjectResponse_t));
+	packetResponse.cola = xQueueCreate(10, sizeof(AOresponse_t));
 
 	if (packetResponse != NULL)
 	{
@@ -96,36 +97,62 @@ static void rxTaskAO(void *pvParameters)
 				{
 				case TO_LOWER:
 
-					// creo el objeto activo si no esxiste
-					if (toLowerAO.isAlive == false)
-					{
-						activeObjectCreate(&toLowerAO, toLowercallback, activeObjectTask);
-					}
-
 					// encolar
 					activeObjectEnqueue(&toLowerAO, &packetResponse);
-					
+
 					break;
 				case TO_UPPER:
 
-					// creo el objeto activo si no esxiste
-					if (toUpperAO.isAlive == false)
-					{
-						activeObjectCreate(&toUpperAO, toUpperCallback, activeObjectTask);
-					}
-
 					// encolar
 					activeObjectEnqueue(&toUpperAO, &packetResponse);
-
 					break;
 				}
 
-				if( xQueueReceive(packetResponse.cola, &auxResponse, 0))
+				if (xQueueReceive(packetResponse.cola, &auxResponse, 0))
 				{
 					sepPut(&handle, &(packetResponse.data), 0);
 				}
-				
 			}
+		}
+	}
+}
+
+void toLowercallback(AOresponse_t *aoResponse)
+{
+	uint8_t *ptr = aoResponse->data.msg;
+
+	while (*ptr != '\0')
+	{
+		if ((*ptr >= 'A' && *ptr <= 'Z') || (*ptr >= 'a' && *ptr <= 'z'))
+		{
+			*ptr = tolower(*ptr);
+			ptr++;
+		}
+		else
+		{
+			strcpy(aoResponse->data.msg, "ERROR\0");
+			aoResponse->data.event = TO_ERROR;
+			break;
+		}
+	}
+}
+
+void toUppercallback(AOresponse_t *aoResponse)
+{
+	uint8_t *ptr = aoResponse->data.msg;
+
+	while (*ptr != '\0')
+	{
+		if ((*ptr >= 'A' && *ptr <= 'Z') || (*ptr >= 'a' && *ptr <= 'z'))
+		{
+			*ptr = toupper(*ptr);
+			ptr++;
+		}
+		else
+		{
+			strcpy(aoResponse->data.msg, "ERROR\0");
+			aoResponse->data.event = TO_ERROR;
+			break;
 		}
 	}
 }
