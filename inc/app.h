@@ -15,6 +15,10 @@
 
 /*=====[Inclusions of public function dependencies]==========================*/
 
+#include "sep.h"
+#include "FreeRTOS.h"
+#include "queue.h"
+
 /*=====[C++ - begin]=========================================================*/
 
 #ifdef __cplusplus

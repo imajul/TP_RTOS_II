@@ -1,17 +1,22 @@
 
+#include "sapi.h"
 #include "AO.h"
 #include "FreeRTOS.h"
 #include "task.h"
-#include "sapi.h"
 #include "queue.h"
 #include "app.h"
+#include "sep.h"
 
 bool_t activeObjectCreate(activeObject_t *ao, callBackActObj_t callback)
 {
+    if(ao->isCreated == true)
+    {
+        return true;
+    }
+
     BaseType_t retValue;
 
     ao->activeObjectQueue = xQueueCreate(10, sizeof(AOresponse_t));
-    
 
     if (ao->activeObjectQueue != NULL)
     {
@@ -27,7 +32,7 @@ bool_t activeObjectCreate(activeObject_t *ao, callBackActObj_t callback)
 
     if (retValue == pdPASS)
     {
-        //ao->isAlive = true;
+        ao->isCreated = true;
         return true;
     }
     else
@@ -41,16 +46,29 @@ void activeObjectTask(void *pvParameters)
     activeObject_t ao = *(activeObject_t *)pvParameters;
     AOresponse_t value;
     
-    while (TRUE)
+    while ( xQueuePeek(ao.activeObjectQueue, &value, 0) == pdPASS )  // verifico si hay datos en la cola
     {
-        xQueueReceive(ao.activeObjectQueue, &value, portMAX_DELAY); 
-        ao.callbackFunc(&value); // llamo al callback del AO
-        xQueueSend(value.cola, &value, 0); 
-    } 
+        xQueueReceive(ao.activeObjectQueue, &value, 0);    // recibo el dato a procesar
+        ao.callbackFunc(&value);                           // llamo al callback del AO
+        xQueueSend(value.cola, (void *)&value, 0);                 // envio la trama procesada a la cola de respuestas
+    }
+
+    activeObjectDelete(&ao);        // si la cola esta vacia, destruyo el AO
 }
 
 void activeObjectEnqueue(activeObject_t *ao, AOresponse_t *val)
 {
-    xQueueSend(ao->activeObjectQueue, val, 0);
+    xQueueSend(ao->activeObjectQueue, (void *)val, 0);
 }
 
+void activeObjectInit(activeObject_t *ao)
+{
+    ao->isCreated == false;                   // seteo el flag de vida
+}
+
+void activeObjectDelete(activeObject_t *ao)
+{
+    vQueueDelete(ao->activeObjectQueue);   // elimino la cola
+    vTaskDelete(activeObjectTask);         // elimino la tarea 
+    ao->isCreated == false;                  // borro el flag de vida
+}

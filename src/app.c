@@ -26,6 +26,8 @@
 
 /*=====[Definitions of private data types]===================================*/
 
+
+
 /*=====[Definitions of external public global variables]=====================*/
 
 /*=====[Definitions of public global variables]==============================*/
@@ -75,16 +77,15 @@ static void rxTaskAO(void *pvParameters)
 	sepData_t data;
 	uint8_t *ptr;
 
-	activeObject_t toLowerAO, toUpperAO;
-	AOresponse_t packetResponse;
-	AOresponse_t auxResponse;
-
-	activeObjectCreate(&toLowerAO, toLowercallback); // instancia de los AO
-	activeObjectCreate(&toUpperAO, toUppercallback);
+	activeObject_t toLowerAO, toUpperAO;            
+	AOresponse_t packetResponse, auxResponse;  		// estructura de datos que intercambio con el AO
+	
+	activeObjectInit(&toLowerAO);					// inicializo los AO
+	activeObjectInit(&toUpperAO);
 
 	packetResponse.cola = xQueueCreate(10, sizeof(AOresponse_t));
 
-	if (packetResponse != NULL)
+	if (packetResponse.cola != NULL)
 	{
 		while (1)
 		{
@@ -97,20 +98,20 @@ static void rxTaskAO(void *pvParameters)
 				{
 				case TO_LOWER:
 
-					// encolar
-					activeObjectEnqueue(&toLowerAO, &packetResponse);
-
+					activeObjectCreate(&toLowerAO, toLowercallback);  // instancio el AO (si no existe)
+					activeObjectEnqueue(&toLowerAO, &packetResponse); // manda el string para procesar
 					break;
+
 				case TO_UPPER:
 
-					// encolar
-					activeObjectEnqueue(&toUpperAO, &packetResponse);
+					activeObjectCreate(&toUpperAO, toUppercallback);  // creo el AO (si no existe)
+					activeObjectEnqueue(&toUpperAO, &packetResponse); // encolar
 					break;
 				}
 
-				if (xQueueReceive(packetResponse.cola, &auxResponse, 0))
+				if (xQueueReceive(packetResponse.cola, &auxResponse, 0)) // recibo la respuesta procesada
 				{
-					sepPut(&handle, &(packetResponse.data), 0);
+					sepPut(&handle, &(packetResponse.data), 0);			// envio a capa SEP
 				}
 			}
 		}
