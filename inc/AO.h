@@ -14,10 +14,12 @@
 #define _AO_H_
 
 /*=====[Inclusions of public function dependencies]==========================*/
+#include <stdbool.h>
 
-#include "app.h"
-#include "queue.h"
 #include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+
 /*=====[C++ - begin]=========================================================*/
 
 #ifdef __cplusplus
@@ -28,30 +30,25 @@ extern "C" {
 
 /*=====[Public function-like macros]=========================================*/  
 
-typedef void (*callBackActObj_t)(AOresponse_t *);
-
 /*=====[Definitions of public data types]====================================*/
+typedef struct {
+	uint8_t* msg;
+	void* handle;
+}aoData_t;
 
-typedef struct
-{
-    TaskFunction_t taskName;
-    QueueHandle_t activeObjectQueue;
-    callBackActObj_t callbackFunc;
-    bool_t isCreated;
+typedef void (*callbackAO_t)(void*);
 
-} activeObject_t;
+typedef struct {
+    QueueHandle_t queue;
+    TaskHandle_t handle;
+    callbackAO_t callback;
+    bool isCreated;
+}ao_t;
 
 /*=====[Prototypes (declarations) of public functions]=======================*/
-
-bool_t activeObjectCreate(activeObject_t *ao, callBackActObj_t callback);
-
-void activeObjectTask(void *pvParameters);
-
-void activeObjectEnqueue(activeObject_t *ao, AOresponse_t *value);
-
-void activeObjectDelete(activeObject_t *ao);
-
-void activeObjectInit(activeObject_t *ao);
+bool aoCreate(ao_t* ao, callbackAO_t callback);
+bool aoIsCreated(ao_t* ao);
+void aoEnqueue(ao_t* ao, aoData_t aoData);
 
 /*=====[Prototypes (declarations) of public interrupt functions]=============*/
 

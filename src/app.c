@@ -37,8 +37,8 @@
 /*=====[Prototypes (declarations) of private functions]======================*/
 static void rxTaskAO(void *pvParameters);
 
-void toLowercallback(AOresponse_t *aoResponse);
-void toUppercallback(AOresponse_t *aoResponse);
+static void toLowercallback(void* pvParameters);
+static void toUppercallback(void* pvParameters);
 
 /*=====[Implementations of public functions]=================================*/
 void appInit(void)
@@ -74,86 +74,95 @@ static void rxTaskAO(void *pvParameters)
 {
 	sepHandle_t handle = *(sepHandle_t *)pvParameters;
 	uint32_t size;
-	sepData_t data;
-	uint8_t *ptr;
-
-	activeObject_t toLowerAO, toUpperAO;            
-	AOresponse_t packetResponse, auxResponse;  		// estructura de datos que intercambio con el AO
+	sepData_t sepData;
 	
-	activeObjectInit(&toLowerAO);					// inicializo los AO
-	activeObjectInit(&toUpperAO);
+	static ao_t aoToLower = {0};
+	static ao_t aoToUpper = {0};
+	aoData_t aoData = {0};
 
-	packetResponse.cola = xQueueCreate(10, sizeof(AOresponse_t));
-
-	if (packetResponse.cola != NULL)
+	while (1)
 	{
-		while (1)
+		if (sepGet(&handle, &sepData, UINT32_MAX))
 		{
-			if (sepGet(&handle, &data, UINT32_MAX))
+			aoData.msg = sepData.msg;
+			aoData.handle = &handle;
+
+			switch (sepData.event)
 			{
-				packetResponse.data.msg = data.msg;
-				ptr = data.msg;
-
-				switch (data.event)
-				{
 				case TO_LOWER:
+					if( aoIsCreated(&aoToLower) == false )
+						aoCreate(&aoToLower, toLowercallback);
 
-					activeObjectCreate(&toLowerAO, toLowercallback);  // instancio el AO (si no existe)
-					activeObjectEnqueue(&toLowerAO, &packetResponse); // manda el string para procesar
+					aoEnqueue(&aoToLower, aoData);
 					break;
 
 				case TO_UPPER:
+					if( aoIsCreated(&aoToUpper) == false )
+						aoCreate(&aoToUpper, toUppercallback);
 
-					activeObjectCreate(&toUpperAO, toUppercallback);  // creo el AO (si no existe)
-					activeObjectEnqueue(&toUpperAO, &packetResponse); // encolar
+					aoEnqueue(&aoToUpper, aoData);
 					break;
-				}
-
-				if (xQueueReceive(packetResponse.cola, &auxResponse, 0)) // recibo la respuesta procesada
-				{
-					sepPut(&handle, &(packetResponse.data), 0);			// envio a capa SEP
-				}
 			}
 		}
 	}
 }
 
-void toLowercallback(AOresponse_t *aoResponse)
+static void toLowercallback(void* pvParameters)
 {
-	uint8_t *ptr = aoResponse->data.msg;
+	aoData_t aoData = *(aoData_t*)pvParameters;
 
-	while (*ptr != '\0')
+	sepHandle_t* handle = (sepHandle_t*)aoData.handle;
+	uint8_t* ptr = aoData.msg;
+
+	sepData_t sepData;
+
+	sepData.msg = aoData.msg;
+	sepData.event = TO_LOWER;
+
+	while(*ptr != '\0')
 	{
-		if ((*ptr >= 'A' && *ptr <= 'Z') || (*ptr >= 'a' && *ptr <= 'z'))
+		if( (*ptr >= 'A' && *ptr <= 'Z') || (*ptr >= 'a' && *ptr <= 'z') )
 		{
 			*ptr = tolower(*ptr);
 			ptr++;
 		}
 		else
 		{
-			strcpy(aoResponse->data.msg, "ERROR\0");
-			aoResponse->data.event = TO_ERROR;
+			strcpy(sepData.msg, "ERROR\0");
+			sepData.event = TO_ERROR;
 			break;
 		}
 	}
+
+	sepPut(handle, &sepData, 0);
 }
 
-void toUppercallback(AOresponse_t *aoResponse)
+static void toUppercallback(void* pvParameters)
 {
-	uint8_t *ptr = aoResponse->data.msg;
+	aoData_t aoData = *(aoData_t*)pvParameters;
 
-	while (*ptr != '\0')
+	sepHandle_t* handle = (sepHandle_t*)aoData.handle;
+	uint8_t* ptr = aoData.msg;
+
+	sepData_t sepData;
+
+	sepData.msg = aoData.msg;
+	sepData.event = TO_UPPER;
+
+	while(*ptr != '\0')
 	{
-		if ((*ptr >= 'A' && *ptr <= 'Z') || (*ptr >= 'a' && *ptr <= 'z'))
+		if( (*ptr >= 'A' && *ptr <= 'Z') || (*ptr >= 'a' && *ptr <= 'z') )
 		{
 			*ptr = toupper(*ptr);
 			ptr++;
 		}
 		else
 		{
-			strcpy(aoResponse->data.msg, "ERROR\0");
-			aoResponse->data.event = TO_ERROR;
+			strcpy(sepData.msg, "ERROR\0");
+			sepData.event = TO_ERROR;
 			break;
 		}
 	}
+
+	sepPut(handle, &sepData, 0);
 }

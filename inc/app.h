@@ -15,10 +15,6 @@
 
 /*=====[Inclusions of public function dependencies]==========================*/
 
-#include "sep.h"
-#include "FreeRTOS.h"
-#include "queue.h"
-
 /*=====[C++ - begin]=========================================================*/
 
 #ifdef __cplusplus
@@ -30,13 +26,6 @@ extern "C" {
 /*=====[Public function-like macros]=========================================*/
 
 /*=====[Definitions of public data types]====================================*/
-
-typedef struct
-{
-    sepData_t data;
-    QueueHandle_t cola;
-
-} AOresponse_t;
 
 /*=====[Prototypes (declarations) of public functions]=======================*/
 void appInit(void);

@@ -1,74 +1,102 @@
+/*=====[Module Name]===========================================================
+ * Copyright YYYY Author Compelte Name <author@mail.com>
+ * All rights reserved.
+ * License: license text or at least name and link 
+         (example: BSD-3-Clause <https://opensource.org/licenses/BSD-3-Clause>)
+ *
+ * Version: 0.0.0
+ * Creation Date: YYYY/MM/DD
+ */
 
-#include "sapi.h"
+/*=====[Inclusion of own header]=============================================*/
 #include "AO.h"
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
-#include "app.h"
-#include "sep.h"
 
-bool_t activeObjectCreate(activeObject_t *ao, callBackActObj_t callback)
+/*=====[Inclusions of private function dependencies]=========================*/
+
+/*=====[Definition macros of private constants]==============================*/
+
+/*=====[Private function-like macros]========================================*/
+
+/*=====[Definitions of private data types]===================================*/
+
+/*=====[Definitions of external public global variables]=====================*/
+
+/*=====[Definitions of public global variables]==============================*/
+
+/*=====[Definitions of private global variables]=============================*/
+
+/*=====[Prototypes (declarations) of private functions]======================*/
+void aoTask(void *pvParameters);
+
+/*=====[Implementations of public functions]=================================*/
+bool aoCreate(ao_t* ao, callbackAO_t callback)
 {
-    if(ao->isCreated == true)
+	if(ao->isCreated == true)
+		return true;
+
+	ao->queue = xQueueCreate(10, sizeof(aoData_t));
+	if (ao->queue == NULL)
+		return false;
+
+	ao->callback = callback;
+	ao->isCreated = true;
+	ao->handle = NULL;
+
+	return true;
+}
+
+bool aoIsCreated(ao_t* ao)
+{
+	return ao->isCreated;
+}
+
+void aoEnqueue(ao_t* ao, aoData_t aoData)
+{
+	BaseType_t err;
+
+	if(ao->isCreated)
+	{
+		xQueueSend(ao->queue, &aoData, 0);
+
+		if(ao->handle == NULL)
+		{
+			err = xTaskCreate(aoTask,
+					"aoTask",
+					configMINIMAL_STACK_SIZE * 2,
+					ao,
+					(tskIDLE_PRIORITY + 2UL),
+					&ao->handle);
+
+			if(err != pdTRUE)
+			{
+				vQueueDelete(ao->queue);
+				ao->isCreated = false;
+			}
+		}
+	}
+}
+
+/*=====[Implementations of interrupt functions]==============================*/
+
+/*=====[Implementations of private functions]================================*/
+void aoTask(void *pvParameters)
+{
+    ao_t* ao = (ao_t*)pvParameters;
+    aoData_t aoData;
+
+    if(ao->isCreated)
     {
-        return true;
-    }
+    	while( uxQueueMessagesWaiting(ao->queue) )
+    	{
+    		xQueueReceive(ao->queue, &aoData, 0);
+			ao->callback(&aoData);
+    	}
 
-    BaseType_t retValue;
+    	ao->isCreated = false;
+    	ao->handle = NULL;
 
-    ao->activeObjectQueue = xQueueCreate(10, sizeof(AOresponse_t));
-
-    if (ao->activeObjectQueue != NULL)
-    {
-        ao->callbackFunc = callback;
-
-        retValue = xTaskCreate(activeObjectTask,
-                               (const char *)"tarea del AO",
-                               configMINIMAL_STACK_SIZE * 2,
-                               ao,
-							   (tskIDLE_PRIORITY + 2UL),
-                               NULL);
-    }
-
-    if (retValue == pdPASS)
-    {
-        ao->isCreated = true;
-        return true;
-    }
-    else
-    {
-        return false;
+    	vQueueDelete(ao->queue);
+    	vTaskDelete(NULL);
     }
 }
 
-void activeObjectTask(void *pvParameters)
-{
-    activeObject_t ao = *(activeObject_t *)pvParameters;
-    AOresponse_t value;
-    
-    while ( xQueuePeek(ao.activeObjectQueue, &value, 0) == pdPASS )  // verifico si hay datos en la cola
-    {
-        xQueueReceive(ao.activeObjectQueue, &value, 0);    // recibo el dato a procesar
-        ao.callbackFunc(&value);                           // llamo al callback del AO
-        xQueueSend(value.cola, (void *)&value, 0);                 // envio la trama procesada a la cola de respuestas
-    }
-
-    activeObjectDelete(&ao);        // si la cola esta vacia, destruyo el AO
-}
-
-void activeObjectEnqueue(activeObject_t *ao, AOresponse_t *val)
-{
-    xQueueSend(ao->activeObjectQueue, (void *)val, 0);
-}
-
-void activeObjectInit(activeObject_t *ao)
-{
-    ao->isCreated == false;                   // seteo el flag de vida
-}
-
-void activeObjectDelete(activeObject_t *ao)
-{
-    vQueueDelete(ao->activeObjectQueue);   // elimino la cola
-    vTaskDelete(activeObjectTask);         // elimino la tarea 
-    ao->isCreated == false;                  // borro el flag de vida
-}
