@@ -3,6 +3,7 @@
 - Luis Lebus
 - Ignacio Majul
 - César Cruz
+
 El proyecto se dividio en 3 capas, la primera capa uartmanager es la que interactua con la SAPI, para poder configurarla usamos la estructura uartManagerConfig_t, la cual permite pasar los parametros de configuración de la uart y también los caracteres de inicio y fin.
 
 ## 1.- uartManager_t
