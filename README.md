@@ -67,7 +67,9 @@ Dentro de uartManager tenemos las funciones:
         
         si son "m" o "M"
    ### - sepPut
-        recibe sepData_t y hace el proceso inverso de sepGet, arma el string UPPER o LOWER, luego de armarlo completo segun corresponda hace el put
+        recibe sepData_t y hace el proceso inverso de sepGet, arma el string UPPER o LOWER, luego de 
+        
+        armarlo completo segun corresponda hace el put
 
 ## En la APP
 
@@ -75,10 +77,18 @@ Dentro de uartManager tenemos las funciones:
         Inicializa una tarea 
    ### - rxTaskA0
         Es la tarea que ejecuta la aplicación, castea los parametros recibidos y creas los objetos activos.
+       
         Se entience flags para indicar que estan los OAs.
-        Al crear el objeto activo , indicamos el nombre de OA y la funcion a representar
-        Luego ejecutamos sepGet que es bloqueante, es decir mientras no haya datos se comporta como un portmaxdelay.
-        Posterior a ello tenemos una maquina de estados que tiene to_lower o to_upper. Crea los objetos activos y entrega callbacks que se debe ejecutar segun corresponda, posterior a ello lo encola.
+        Al crear el objeto activo , indicamos el nombre de 
+        
+        OA y la funcion a representar
+        Luego ejecutamos sepGet que es bloqueante, es decir 
+        
+        mientras no haya datos se comporta como un portmaxdelay.
+        
+        Posterior a ello tenemos una maquina de estados que tiene to_lower o to_upper. Crea los objetos activos 
+        
+        y entrega callbacks que se debe ejecutar segun corresponda, posterior a ello lo encola.
    ### - toLower
         callback de OA para minusculizar 
    ### - toUpper
@@ -88,7 +98,11 @@ Dentro de uartManager tenemos las funciones:
    ### - activeObjectCreate
         Si no esta creado el objeto activo, crea la cola y crea la tarea , returnando un true o false.
    ###  - sctiveObjectTask
-        Recibe por parametro el OA y pregunta en la cola del OA si existe algo para procesar, en caso haya , lo recibe y lo desencola. Ejecuta el callback para mayusculizar o minusculizar. Si no hubiera nada en la cola, destruye el OA y apagr el flag de vida del OA 
+        Recibe por parametro el OA y pregunta en la cola del OA si existe algo para procesar, en caso haya , 
+        
+        lo recibe y lo desencola. Ejecuta el callback para mayusculizar o minusculizar. Si no hubiera nada en 
+        
+        la cola, destruye el OA y apagr el flag de vida del OA 
 
 ## 1 Manejo del pool de memoria
     commit:8506012 Mar 26, 2020 at 20:01
