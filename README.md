@@ -3,43 +3,69 @@
 - Luis Lebus
 - Ignacio Majul
 - César Cruz
-El proyecto se dividio en 3 capas, la capa uartmanager es la que interactua con la SAPI, para poder configurarla usamos la estructura uartManagerConfig_t, la cual permite pasar los parametros de configuración de la uart y también los caracteres de inicio y fin.
+El proyecto se dividio en 3 capas, la primera capa uartmanager es la que interactua con la SAPI, para poder configurarla usamos la estructura uartManagerConfig_t, la cual permite pasar los parametros de configuración de la uart y también los caracteres de inicio y fin.
 
-La estructura uartManager_t, contiene los pool de memoria para la transmisión y recepción, con los punteros a cada uno respectivamente, tambíen contiene las colas de transmision y recepción. Todos los campos de esta estructura son estaticos.
+## 1.- uartManager_t
 
-## Dentro de uartManager tenemos las funciones:
+- La estructura uartManager_t contiene los pool de memoria para la transmisión y recepción, con los punteros a cada uno respectivamente, tambíen contiene las colas de transmision y recepción. Todos los campos de esta estructura son estaticos.
+
+Dentro de uartManager tenemos las funciones:
    ### - uartManagerInit
-        Pasa el handle de configuración y se realizan las validaciones necesarias tanto en la uart como en memoria. Por ultimo se hace la configuración de los timers de transmisión y recepción.
+        Pasa el handle de configuración y se realizan las validaciones necesarias tanto en la uart como en 
+        
+        memoria. Por ultimo se hace la configuración de los timers de transmisión y recepción.
    ### - uartManagerDeInit
         Desinicializa lo que se ha usado de forma dinámica:Pool de memoria,colas,timers,etc.
    ### - uartManagerGet
-        todo lo que refiere a asignación de memoria y punteros , realizan copias para las capas superiores eso evita el problema de la liberación de memoria, posterior a la copia se hace liberación.
+        todo lo que refiere a asignación de memoria y punteros , realizan copias para las capas 
+        
+        superiores eso evita el problema de la liberación de memoria, posterior a la copia se hace liberación.
 
-        Frente al problema de que el get desconoce la cantidad de caracteres a esperar. Lo que se hizo es usar peck para no desencolarlo, esto para obtener el tamaño y posteriormente tener el mensaje
+        Frente al problema de que el get desconoce la cantidad de caracteres a esperar. Lo que se hizo es 
+        
+        usar peck para no desencolarlo, esto para obtener el tamaño y posteriormente tener el mensaje
 
    ### - uartManagerPut
 
-        se solicita un bloque de memoria, luego se calcula el CRC8 posterior a ello se arma el mensaje para transmitir agregando los delimitadores. Una vez listo de encola para que sea transmitido por el callback del timer.
+        se solicita un bloque de memoria, luego se calcula el CRC8 posterior a ello se arma el mensaje para 
+        
+        transmitir agregando los delimitadores. Una vez listo de encola para que sea transmitido por el 
+        
+        callback del timer.
 
    ### - rxCallback 
-        usamos una maquina de estados para parsear los caracteres, se pide un bloque de memoria, para luego analizar cada caracter, al llegar al caracter final se calcula el CRC8, solo si es correcto se encola.
+        usamos una maquina de estados para parsear los caracteres, se pide un bloque de memoria, para 
+        
+        luego analizar cada caracter, al llegar al caracter final se calcula el CRC8, solo si es correcto se 
+        
+        encola.
 
 
-## Pool de memoria
+## 2.- Pool de memoria
 
    ### - poolDeinit
-        Al inicializar hacemos un vportmalloc de cantidad de bloques y su tamaño respectivo que se necesita.
+        Al inicializar hacemos un vportmalloc de cantidad 
+        
+        de bloques y su tamaño respectivo que se necesita.
    ### - poolGet
         Nos entrega las direcciones de memoria donde estan ubicados los bloques del pool libre
    ### - poolPut
-        Coge el bloque asignado y lo señalisa para poder sobre escribirlo , esto permite que el poolGet consulte y asigne,en caso este libre para sobre escribir
+        Coge el bloque asignado y lo señalisa para poder sobre escribirlo , esto permite que el poolGet 
+        
+        consulte y asigne,en caso este libre para sobre escribir
 
-## Sep 
-    Esta capa separa en campos para armar o despomponer los string, posterior a ello los entrega a "app.c"
+## 3.- Sep 
+    Esta capa separa en campos para armar o despomponer los 
+    
+    string, posterior a ello los entrega a "app.c"
    ### - sepInit
         Recibe el handle del uart 
    ### - sepGet
-        Para hacer un get, se realiza primero un get con NULL, en size tenemos el elemento a desencolar, con el que hacemos la asignación de memoria para posteriormente desencolar, analizamos los elementos si son "m" o "M"
+        Para hacer un get, se realiza primero un get con NULL, en size tenemos el elemento a desencolar, con 
+        
+        el que hacemos la asignación de memoria para posteriormente desencolar, analizamos los elementos 
+        
+        si son "m" o "M"
    ### - sepPut
         recibe sepData_t y hace el proceso inverso de sepGet, arma el string UPPER o LOWER, luego de armarlo completo segun corresponda hace el put
 
