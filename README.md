@@ -103,7 +103,7 @@ Dentro de uartManager tenemos las funciones:
         lo recibe y lo desencola. Ejecuta el callback para mayusculizar o minusculizar. Si no hubiera nada en 
         
         la cola, destruye el OA y apagr el flag de vida del OA 
-
+# secuencia de commits
 ## 1 Manejo del pool de memoria
     commit:8506012 Mar 26, 2020 at 20:01
 
