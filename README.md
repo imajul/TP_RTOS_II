@@ -1,14 +1,14 @@
-# CESE 10ma Co Sistemas operativos de tiempo Real II - TP FINAL
+# CESE 10ma Cohorte - Sistemas operativos de tiempo Real II - TP FINAL
 
 - Luis Lebus
 - Ignacio Majul
 - César Cruz
 
-El proyecto se dividio en 3 capas, la primera capa uartmanager es la que interactua con la SAPI, para poder configurarla usamos la estructura uartManagerConfig_t, la cual permite pasar los parametros de configuración de la uart y también los caracteres de inicio y fin.
+El proyecto se dividio en 3 capas, la primera capa uartmanager es la que interactua con la SAPI (driver). Para poder configurarla usamos la estructura uartManagerConfig_t, la cual permite pasar los parametros de configuración de la uart que el usuario desee utilizar y también los caracteres de inicio y fin configurables.
 
-## 1.- uartManager_t
+## 1.- UART MANAGER
 
-- La estructura uartManager_t contiene los pool de memoria para la transmisión y recepción, con los punteros a cada uno respectivamente, tambíen contiene las colas de transmision y recepción. Todos los campos de esta estructura son estaticos.
+- La estructura uartManager_t contiene las direcciones que el pool de memoria otorga de a bloques para la transmisión y recepción. Contiene las colas de transmision y recepción y los handlers de los TimeOut. Todos los campos de esta estructura son estaticos.
 
 Dentro de uartManager tenemos las funciones:
    ### - uartManagerInit
@@ -40,7 +40,6 @@ Dentro de uartManager tenemos las funciones:
         luego analizar cada caracter, al llegar al caracter final se calcula el CRC8, solo si es correcto se 
         
         encola.
-
 
 ## 2.- Pool de memoria
 
@@ -97,13 +96,14 @@ Dentro de uartManager tenemos las funciones:
 
 ## AO
    ### - activeObjectCreate
-        Si no esta creado el objeto activo, crea la cola y crea la tarea , returnando un true o false.
+        Si no esta creado el objeto activo, crea la cola y crea la tarea, returnando un true o false.
    ###  - sctiveObjectTask
         Recibe por parametro el OA y pregunta en la cola del OA si existe algo para procesar, en caso haya , 
         
         lo recibe y lo desencola. Ejecuta el callback para mayusculizar o minusculizar. Si no hubiera nada en 
         
-        la cola, destruye el OA y apagr el flag de vida del OA 
+        la cola, destruye el OA y apaga el flag de vida del OA 
+
 # secuencia de commits
 ## 1 Manejo del pool de memoria
     commit:8506012 Mar 26, 2020 at 20:01
