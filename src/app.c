@@ -52,7 +52,7 @@ void appInit(void)
 	uartConfig.uart = UART_USB;
 	uartConfig.chStart = '(';
 	uartConfig.chEnd = ')';
-	uartConfig.msgMaxLen = 64;
+	uartConfig.msgMaxLen = 32;
 
 	uartManagerInit(&uartHandle, uartConfig);
 
